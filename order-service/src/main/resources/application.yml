@@ -1,0 +1,42 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/order_db
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        spring.json.add.type.headers: false
+  cloud:
+    openfeign:
+      client:
+        config:
+          user-service:
+            connectTimeout: 3000
+            readTimeout: 5000
+            loggerLevel: basic
+
+# Used by @FeignClient(url = "${user-service.url}")
+user-service:
+  url: http://localhost:8081
+
+logging:
+  level:
+    com.example.orderservice: INFO
+    com.example.orderservice.client: DEBUG
