@@ -1,6 +1,7 @@
 package com.example.orderservice.service;
 
 import com.example.orderservice.client.UserClient;
+import com.example.orderservice.config.AsyncConfig;
 import com.example.orderservice.dto.CreateOrderRequest;
 import com.example.orderservice.dto.OrderResponse;
 import com.example.orderservice.entity.Order;
@@ -12,6 +13,9 @@ import com.example.orderservice.producer.OrderEventProducer;
 import com.example.orderservice.repository.OrderRepository;
 import feign.FeignException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,19 +27,21 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final UserClient userClient;
     private final OrderEventProducer orderEventProducer;
+    private final Executor orderTaskExecutor;
 
     public OrderService(
             OrderRepository orderRepository,
             UserClient userClient,
-            OrderEventProducer orderEventProducer) {
+            OrderEventProducer orderEventProducer, Executor orderTaskExecutor) {
         this.orderRepository = orderRepository;
         this.userClient = userClient;
         this.orderEventProducer = orderEventProducer;
+        this.orderTaskExecutor = orderTaskExecutor;
     }
 
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
-        verifyUserExists(request.userId());
+        verifyUserExistsAsync(request.userId()).join();
 
         Order saved = orderRepository.save(new Order(
                 request.userId(),
@@ -70,15 +76,18 @@ public class OrderService {
                 .toList();
     }
 
-    private void verifyUserExists(Long userId) {
-        try {
-            userClient.getUserById(userId);
-        } catch (FeignException.NotFound ex) {
-            throw new UserNotFoundException(userId);
-        } catch (FeignException ex) {
-            throw new UserServiceUnavailableException(
-                    "Unable to verify user with user-service", ex);
-        }
+    private CompletableFuture<Void> verifyUserExistsAsync(Long userId) {
+
+        return CompletableFuture.runAsync(() -> {
+            try {
+                userClient.getUserById(userId);
+            } catch (FeignException.NotFound ex) {
+                throw new UserNotFoundException(userId);
+            } catch (FeignException ex) {
+                throw new UserServiceUnavailableException(
+                        "Unable to verify user with user-service", ex);
+            }
+        });
     }
 
     private OrderResponse toResponse(Order order) {

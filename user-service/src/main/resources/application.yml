@@ -1,13 +1,24 @@
 server:
   port: 8081
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, matrics
+
+  endpoint:
+    health:
+      show-details: always
+
 spring:
   application:
     name: user-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/user_db
+    url: jdbc:postgresql://localhost:5433/user_db
     username: postgres
-    password: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update

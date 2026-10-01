@@ -26,6 +26,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Executor;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,11 +47,14 @@ class OrderServiceTest {
     @Mock
     private OrderEventProducer orderEventProducer;
 
+    @Mock
+    private Executor orderTaskExecutor;
+
     private OrderService orderService;
 
     @BeforeEach
     void setUp() {
-        orderService = new OrderService(orderRepository, userClient, orderEventProducer);
+        orderService = new OrderService(orderRepository, userClient, orderEventProducer, orderTaskExecutor);
     }
 
     @Test
